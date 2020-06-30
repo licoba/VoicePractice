@@ -2,22 +2,12 @@
 import React, { Component } from 'react';
 import { Button, Input } from 'react-native-elements';
 import { PermissionsAndroid, Platform, SafeAreaView, StyleSheet, Switch, Text, View, ScrollView } from 'react-native';
-
 import Icon from 'react-native-vector-icons/FontAwesome';
 import {
     Player,
     Recorder,
     MediaStates
 } from '@react-native-community/audio-toolkit';
-
-import {
-    Header,
-    LearnMoreLinks,
-    Colors,
-    DebugInstructions,
-    ReloadInstructions,
-} from 'react-native/Libraries/NewAppScreen';
-
 
 
 const RecordState = {
@@ -202,14 +192,7 @@ export default class MainView extends Component {
     }
 
     _updateState(err) {
-        // this.setState({
-        //   playPauseButton: this.player && this.player.isPlaying ? 'Pause' : 'Play',
-        //   recordButton: this.recorder && this.recorder.isRecording ? 'Stop' : 'Record',
 
-        //   stopButtonDisabled: !this.player || !this.player.canStop,
-        //   playButtonDisabled: !this.player || !this.player.canPlay || this.recorder.isRecording,
-        //   recordButtonDisabled: !this.recorder || (this.player && !this.player.isStopped),
-        // });
     }
 
     async _requestRecordAudioPermission() {
