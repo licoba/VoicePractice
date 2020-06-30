@@ -35,7 +35,7 @@ export default class MainView extends Component {
         };
     }
 
-    componentWillMount() {
+    UNSAFE_componentWillMount() {
         this.player = null;
         this.recorder = null;
         this.lastSeek = 0;
