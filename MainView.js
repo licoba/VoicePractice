@@ -9,6 +9,7 @@ import {
     MediaStates
 } from '@react-native-community/audio-toolkit';
 
+// 库在这里 https://github.com/react-native-community/react-native-audio-toolkit
 
 const RecordState = {
     NONE: 'NONE',
@@ -87,18 +88,7 @@ export default class MainView extends Component {
     }
 
     _stop() {
-        this.recorder.toggleRecord((err, stopped) => {
-            if (err) {
-                this.setState({
-                    error: err.message
-                });
-            }
-            if (stopped) {
-                this._reloadPlayer();
-                this._reloadRecorder();
-            }
-        });
-        this.setState({ recordState: RecordState.FINISHED })
+        this._toggleRecord()
     }
 
     _playPause() {
@@ -134,6 +124,7 @@ export default class MainView extends Component {
                 return;
             }
 
+            this.setState({ recordState: RecordState.RECORDING });
             this.recorder.toggleRecord((err, stopped) => {
                 if (err) {
                     this.setState({
@@ -143,8 +134,8 @@ export default class MainView extends Component {
                 if (stopped) {
                     this._reloadPlayer();
                     this._reloadRecorder();
+                    this.setState({ recordState: RecordState.FINISHED })
                 }
-                this.setState({ recordState: RecordState.RECORDING });
             });
         });
     }
