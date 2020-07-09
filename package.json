@@ -3,11 +3,13 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "android": "react-native run-android",
-    "ios": "react-native run-ios",
+    "run android": "react-native run-android",
+    "run ios": "react-native run-ios",
     "start": "react-native start",
+    "npm:install": "npm install",
     "test": "jest",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "reverse android": "adb reverse tcp:8081 tcp:8081"
   },
   "dependencies": {
     "@react-native-community/audio-toolkit": "^2.0.3",
