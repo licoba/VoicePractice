@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import { Button, Input } from 'react-native-elements';
 import RNFS from 'react-native-fs';
+import RNFetchBlob from 'rn-fetch-blob'
 
 import { PermissionsAndroid, Platform, SafeAreaView, StyleSheet, Switch, Text, View, ScrollView } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
@@ -32,8 +33,8 @@ export default class MainView extends Component {
     recorder: Recorder | null;
     lastSeek: number;
     _progressInterval: IntervalID;
-    musicFile : null;
-    fsPath : null;
+    musicFile: null;
+    fsPath: null;
 
     constructor(props) {
         super(props);
@@ -48,6 +49,7 @@ export default class MainView extends Component {
     UNSAFE_componentWillMount() {
         this.player = null;
         this.recorder = null;
+        this.fsPath = '/data/user/0/com.practiceproject/files/test.mp3'
         this.lastSeek = 0;
         this._reloadPlayer();
         this._reloadRecorder();
@@ -60,16 +62,35 @@ export default class MainView extends Component {
                 this.setState({ progress: currentProgress });
             }
         }, 100);
+        // /data/data/com.practiceproject/files/
+        // /data/user/0/com.practiceproject/files/
+        // 也就是data/data 和data/user/0 是等价的  /data/user/0 只是一个 /data/data 的 link
+
+        // RNFS.readDir('/data/data/com.practiceproject/files/')
+        //     .then(files => {
+        //         console.log("found:" + files.length + "个文件 ", JSON.stringify(files))
+        //         return files
+        //     })
+        //     .catch(err => {
+        //         console.log("found: error\t")
+        //         console.error(err)
+        //     })
+        RNFetchBlob.fs.ls('/data/data/com.practiceproject/files/')
+            // files will an array contains filenames
+            .then((files) => {
+                console.log('RNFetchBlob fs 扫描到文件:', files)
+            })
     }
 
 
     async _submitTest() {
-        console.log("正在提交评测,文件路径：",this.fsPath)
+        console.log("正在提交评测,文件路径：", this.fsPath)
         let formData = new FormData();
         // /data/user/0/com.practiceproject/files/test.mp3
+        // /data/data/com.practiceproject/files/test.mp3
         // file://storage/emulated/0/Android/data/com.practiceproject/files/test.mp3
-        console.log('RNFS ExternalStorageDirectoryPath',RNFS.ExternalStorageDirectoryPath);
-        console.log('RNFS ExternalDirectoryPath',RNFS.ExternalDirectoryPath);
+        console.log('RNFS ExternalStorageDirectoryPath', RNFS.ExternalStorageDirectoryPath);
+        console.log('RNFS ExternalDirectoryPath', RNFS.ExternalDirectoryPath);
 
         // formData.append('file',{
         //     uri:'file://data/user/0/com.practiceproject/files/test.mp3',
@@ -77,23 +98,36 @@ export default class MainView extends Component {
         //     name:"file",
         //     filename:'test.mp3'
         // })//音频文件
-        formData.append('user_id',"user_licoba_123")// 用户ID，用来唯一标识
-        formData.append('word_name',this.state.submitText)// 用来识别的单词
+        formData.append('user_id', "user_licoba_123")// 用户ID，用来唯一标识
+        formData.append('word_name', this.state.submitText)// 用来识别的单词
         try {
-            let response = await fetch(TEST_URL, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'multipart/form-data;charset=utf-8', 
-                    'Content-Transfer-Encoding':'utf-8', 
-                    'Authorization': TEST_TOKEN
+            let response = await RNFetchBlob.fetch('post', TEST_URL, {
+                'Content-Type': 'multipart/form-data',
+                otherHeader: "foo",
+                Authorization: 'Bearer ' + TEST_TOKEN
+            }, [
+                {
+                    name: 'myWavfile',
+                    filename: 'test.mp3',
+                    type: 'application/mp3',
+                    data: RNFetchBlob.wrap(this.fsPath)
                 },
-                body: formData
-            });
+                {
+                    name: 'user_id', data: 'user_licoba_123'
+                },
+                {
+                    name: 'word_name', data: this.state.submitText
+                },
+                {
+                    name: 'Authorization', data: TEST_TOKEN
+                }
+            ]
+            );
 
             let responseJson = await response.text();
             console.log("请求返回的结果", responseJson)
         } catch (error) {
-            console.error("请求返回error",error);
+            console.error("请求返回error", error);
         }
     }
 
@@ -228,13 +262,13 @@ export default class MainView extends Component {
             quality: 'max',
             format: 'mp3'
         });
-        this.recorder.prepare((err) => {
-            if (err) {
-                console.log('error at prepareRecorder():',err);
-            } else {
-                this.fsPath = this.recorder.fsPath;
-            }
-        });
+        // this.recorder.prepare((err) => {
+        //     if (err) {
+        //         console.log('error at prepareRecorder():', err);
+        //     } else {
+        //         this.fsPath = this.recorder.fsPath;
+        //     }
+        // });
     }
 
     _reloadPlayer() {

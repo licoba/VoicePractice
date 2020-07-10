@@ -2,7 +2,10 @@
     package="com.practiceproject">
     <!-- If you want to play audio from a SD card (i.e. external storage),
          you need to add this permission -->
+
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.DOWNLOAD_WITHOUT_NOTIFICATION" />
 
     <!-- If you want to play audio from a URL, you need to add these permissions -->
     <uses-permission android:name="android.permission.INTERNET" />
