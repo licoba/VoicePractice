@@ -1,6 +1,7 @@
-
 import React, { Component } from 'react';
 import { Button, Input } from 'react-native-elements';
+import RNFS from 'react-native-fs';
+
 import { PermissionsAndroid, Platform, SafeAreaView, StyleSheet, Switch, Text, View, ScrollView } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import {
@@ -18,6 +19,11 @@ const RecordState = {
     FINISHED: 'FINISHED',
 }
 
+// API 地址
+const TEST_URL = "https://t02.io.speechx.cn:8443/MDD_Server/mdd_v18"
+// 请求必须要带的Token
+const TEST_TOKEN = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJzcGVlY2h4X21kZCIsIlNpZ25lZEJ5IjoianN6aG9uZyIsIkVuZ2xpc2hMZXZlbCI6MywiaXNzIjoiYXV0aDAiLCJuR0JfVVMiOjAsImF1ZCI6Imd1ZXN0IiwiaXNGb3JDaGlsZCI6ZmFsc2UsIm5DbGllbnRJRCI6MTU5Mjg5MjM0OCwibk1heENvbmN1cnJlbnRVc2VyIjowLCJQdWJsaXNoZXJOYW1lIjoic2hpa29uZ2h1XzIwMjAwNjIzMTQwNDQ0ODY2IiwiRmVlZEJhY2tUeXBlIjo2LCJleHAiOjE2MjY5Njk2NDgsImlhdCI6MTU5Mjg5MjM0OH0.QvBbuMq-WV49MKhUtc3aBdo9WD4x-OXfhDvug-J2no4"
+
 const filename = 'test.mp3';
 
 export default class MainView extends Component {
@@ -26,13 +32,16 @@ export default class MainView extends Component {
     recorder: Recorder | null;
     lastSeek: number;
     _progressInterval: IntervalID;
+    musicFile : null;
+    fsPath : null;
 
     constructor(props) {
         super(props);
         this.state = {
-            recordState: RecordState.NONE,
+            recordState: RecordState.FINISHED,
             error: '',
-            responseText: '提交评测后查看结果'
+            responseText: '提交评测后查看结果',
+            submitText: 'Can you hear me?'
         };
     }
 
@@ -40,10 +49,8 @@ export default class MainView extends Component {
         this.player = null;
         this.recorder = null;
         this.lastSeek = 0;
-
         this._reloadPlayer();
         this._reloadRecorder();
-
         this._progressInterval = setInterval(() => {
             if (this.player) {
                 let currentProgress = Math.max(0, this.player.currentTime) / this.player.duration;
@@ -53,6 +60,41 @@ export default class MainView extends Component {
                 this.setState({ progress: currentProgress });
             }
         }, 100);
+    }
+
+
+    async _submitTest() {
+        console.log("正在提交评测,文件路径：",this.fsPath)
+        let formData = new FormData();
+        // /data/user/0/com.practiceproject/files/test.mp3
+        // file://storage/emulated/0/Android/data/com.practiceproject/files/test.mp3
+        console.log('RNFS ExternalStorageDirectoryPath',RNFS.ExternalStorageDirectoryPath);
+        console.log('RNFS ExternalDirectoryPath',RNFS.ExternalDirectoryPath);
+
+        // formData.append('file',{
+        //     uri:'file://data/user/0/com.practiceproject/files/test.mp3',
+        //     type:'application/mp3',
+        //     name:"file",
+        //     filename:'test.mp3'
+        // })//音频文件
+        formData.append('user_id',"user_licoba_123")// 用户ID，用来唯一标识
+        formData.append('word_name',this.state.submitText)// 用来识别的单词
+        try {
+            let response = await fetch(TEST_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'multipart/form-data;charset=utf-8', 
+                    'Content-Transfer-Encoding':'utf-8', 
+                    'Authorization': TEST_TOKEN
+                },
+                body: formData
+            });
+
+            let responseJson = await response.text();
+            console.log("请求返回的结果", responseJson)
+        } catch (error) {
+            console.error("请求返回error",error);
+        }
     }
 
 
@@ -66,26 +108,58 @@ export default class MainView extends Component {
                 <View style={{ flex: 6, flexDirection: 'column', alignItems: 'center', }}>
                     <Input
                         placeholder='输入文本'
-                        leftIcon={{ type: 'font-awesome', name: 'hand-o-right' }}
-                    />
-                    <Text style={{ position: 'absolute', fontSize: 14, top: 55, left: 20, textAlign: 'left' }} >评测结果</Text>
+                        leftIcon={{ type: 'font-awesome', name: 'hand-o-right' }}>{this.state.submitText}</Input>
+                    <Text style={{ position: 'absolute', fontSize: 14, top: 55, left: 20, textAlign: 'left' }}>评测结果</Text>
                     <ScrollView style={{ flex: 1, marginTop: 4, marginBottom: 20, marginLeft: 20, marginRight: 20, }}>
-                        <Text style={{ flex: 1, fontSize: 18, color: '#808080',textAlign: 'left' }}>{this.state.responseText}</Text>
+                        <Text style={{
+                            flex: 1,
+                            fontSize: 18,
+                            color: '#808080',
+                            textAlign: 'left'
+                        }}>{this.state.responseText}</Text>
                     </ScrollView>
-                    <Button buttonStyle={{ width: 500, height: 50 }}
-                        title="提交评测" loading={false} disabled={this.state.recordState == RecordState.FINISHED ? false : true}/>
+                    <Button buttonStyle={{ width: 500, height: 50 }} onPress={() => {
+                        this._submitTest();
+                    }}
+                        title="提交评测" loading={false}
+                        disabled={this.state.recordState == RecordState.FINISHED ? false : true} />
                 </View>
-                <View style={{ flex: 1, flexDirection: 'row', backgroundColor: '#22aaaaaa', alignItems: 'center', justifyContent: 'space-between', }}>
-                    <Text style={{ position: 'absolute', color: '#DC143C', fontSize: 20, top: 0, left: 20, right: 20, textAlign: 'center' }} >{this.state.error}</Text>
-                    <Button title='开始录音' onPress={() => { this._toggleRecord(); }}
+                <View style={{
+                    flex: 1,
+                    flexDirection: 'row',
+                    backgroundColor: '#22aaaaaa',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                }}>
+                    <Text style={{
+                        position: 'absolute',
+                        color: '#DC143C',
+                        fontSize: 20,
+                        top: 0,
+                        left: 20,
+                        right: 20,
+                        textAlign: 'center'
+                    }}>{this.state.error}</Text>
+                    <Button title='开始录音' onPress={() => {
+                        this._toggleRecord();
+                    }}
                         disabled={this.state.recordState == RecordState.RECORDING ? true : false}
                         buttonStyle={{ width: 100, height: 50, color: '#4682B4', marginLeft: 20 }}></Button>
-                    <Button title='结束录音' onPress={() => this._stop()} disabled={this.state.recordState == RecordState.RECORDING ? false : true} buttonStyle={{ width: 100, height: 50, backgroundColor: '#733' }}></Button>
-                    <Button title='播放录音' onPress={() => this._playPause()} disabled={this.state.recordState == RecordState.FINISHED ? false : true} buttonStyle={{ width: 100, height: 50, backgroundColor: '#008000', marginRight: 20 }}></Button>
+                    <Button title='结束录音' onPress={() => this._stop()}
+                        disabled={this.state.recordState == RecordState.RECORDING ? false : true}
+                        buttonStyle={{ width: 100, height: 50, backgroundColor: '#733' }}></Button>
+                    <Button title='播放录音' onPress={() => this._playPause()}
+                        disabled={this.state.recordState == RecordState.FINISHED ? false : true} buttonStyle={{
+                            width: 100,
+                            height: 50,
+                            backgroundColor: '#008000',
+                            marginRight: 20
+                        }}></Button>
                 </View>
             </View>
         );
     }
+
 
     _stop() {
         this._toggleRecord()
@@ -113,7 +187,9 @@ export default class MainView extends Component {
         if (Platform.OS == 'android') {
             recordAudioRequest = this._requestRecordAudioPermission();
         } else {
-            recordAudioRequest = new Promise(function (resolve, reject) { resolve(true); });
+            recordAudioRequest = new Promise(function (resolve, reject) {
+                resolve(true);
+            });
         }
 
         recordAudioRequest.then((hasPermission) => {
@@ -152,8 +228,13 @@ export default class MainView extends Component {
             quality: 'max',
             format: 'mp3'
         });
-
-        // this._updateState();
+        this.recorder.prepare((err) => {
+            if (err) {
+                console.log('error at prepareRecorder():',err);
+            } else {
+                this.fsPath = this.recorder.fsPath;
+            }
+        });
     }
 
     _reloadPlayer() {
